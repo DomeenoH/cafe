@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tail Café | Secure Terminal</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+
+<body>
+    <div class="screen-fx"></div>
+    <div class="toast" id="toast">系统消息</div>
+
+    <!-- 影像预览 Modal -->
+    <div class="modal-overlay" id="img-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title" data-i18n="modal_title">影像预览</span>
+                <button class="modal-close" id="btn-close-modal">×</button>
+            </div>
+            <div class="img-container">
+                <img id="generated-img" alt="Receipt Snapshot">
+            </div>
+            <div class="modal-footer">
+                <p class="modal-tip" data-i18n="modal_tip">长按图片保存或分享</p>
+                <button class="cyber-btn primary small" id="btn-share-action">
+                    <span data-i18n="btn_share">分享影像</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <div class="control-panel">
+            <div class="cp-header">
+                <div class="brand-block">
+                    <div class="status-indicator">
+                        <div class="led"></div>
+                        <span data-i18n="status">SYSTEM ONLINE</span>
+                    </div>
+                    <h1 data-i18n="app_title">尾巴咖啡</h1>
+                </div>
+                <div class="lang-switch">
+                    <button class="lang-btn active" id="lang-cn">CN</button>
+                    <span class="divider">/</span>
+                    <button class="lang-btn" id="lang-en">EN</button>
+                </div>
+            </div>
+
+            <div class="main-interface">
+                <div class="mode-tabs">
+                    <button class="tab-btn active" data-tab="encrypt">
+                        <span class="icon">＋</span>
+                        <span data-i18n="tab_new">新建订单</span>
+                    </button>
+                    <button class="tab-btn" data-tab="decrypt">
+                        <span class="icon">◎</span>
+                        <span data-i18n="tab_scan">票据核销</span>
+                    </button>
+                </div>
+
+                <div class="panel-section active" id="panel-encrypt">
+                    <div class="terminal-window">
+                        <div class="terminal-body">
+                            <textarea id="input-encrypt" data-i18n-placeholder="ph_encrypt"></textarea>
+                        </div>
+                        <div class="terminal-footer">
+                            <span id="char-count">0 B</span>
+                            <span class="mode">WRITE</span>
+                        </div>
+                    </div>
+                    <button id="btn-encrypt" class="cyber-btn primary">
+                        <span class="btn-text" data-i18n="btn_encrypt">生成订单</span>
+                        <span class="btn-glitch"></span>
+                    </button>
+                </div>
+
+                <div class="panel-section" id="panel-decrypt">
+                    <div class="terminal-window scan-mode">
+                        <div class="terminal-body">
+                            <textarea id="input-decrypt" data-i18n-placeholder="ph_decrypt"></textarea>
+                        </div>
+                    </div>
+
+                    <button id="btn-decrypt" class="cyber-btn secondary">
+                        <span class="btn-text" data-i18n="btn_decrypt">读取解析</span>
+                    </button>
+
+                    <div class="output-console">
+                        <div class="console-header">
+                            <span data-i18n="label_decoded">> 数据流:</span>
+                            <span class="status-tag" id="decrypt-status">READY</span>
+                        </div>
+                        <div class="output-display">
+                            <div id="output-decrypt" class="cyber-text"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-info" data-i18n="footer_ver">SECURE TERMINAL V8.3</div>
+        </div>
+
+        <div class="receipt-stage">
+            <div class="spotlight"></div>
+            <div class="receipt-wrapper">
+                <div class="receipt" id="receiptPaper">
+                    <div class="r-header">
+                        <div class="r-logo" data-i18n="r_title">尾巴咖啡</div>
+                        <div class="r-sub" data-i18n="r_sub">独立烘焙 · 精品咖啡</div>
+                        <div class="r-meta-grid">
+                            <div class="meta-row"><span data-i18n="r_date">日期</span><span id="r-date">--</span></div>
+                            <div class="meta-row"><span data-i18n="r_no">单号</span><span id="r-order">--</span></div>
+                            <div class="meta-row"><span data-i18n="r_guest">顾客</span><span id="r-member">--</span></div>
+                        </div>
+                    </div>
+
+                    <div class="r-body" id="r-list">
+                        <div class="empty-state" data-i18n="r_waiting">- 等待数据 -</div>
+                    </div>
+
+                    <div class="r-footer">
+                        <div class="r-total">
+                            <span data-i18n="r_total">合计</span>
+                            <span id="r-total">0.00</span>
+                        </div>
+                        <div class="r-hash-block">
+                            <div><span data-i18n="r_auth">校验</span>: <span id="r-auth">----------------</span></div>
+                            <div><span data-i18n="r_ref">溯源</span>: <span id="r-trace">----------------</span></div>
+                        </div>
+                        <div class="barcode-container" id="r-barcode"></div>
+                        <div class="thank-you" data-i18n="r_thanks">谢谢惠顾 · 欢迎再次光临</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fab-group">
+                <button class="fab-copy" id="btn-copy">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path
+                            d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3">
+                        </path>
+                    </svg>
+                    <span data-i18n="btn_copy">复制文本</span>
+                </button>
+                <button class="fab-copy fab-save" id="btn-save-img">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                    <span data-i18n="btn_save">保存影像</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
