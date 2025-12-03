@@ -22,9 +22,9 @@ const I18n = {
         r_total: "合计",
         r_auth: "校验",
         r_ref: "溯源",
-        r_waiting: "- 等待数据录入 -",
+        r_waiting: "- 待点餐 -",
         r_thanks: "谢谢惠顾 · 欢迎再次光临",
-        r_fold: "/// 区域折叠：已隐藏 {n} 项商品 ///",
+        r_fold: "",
         guest_walkin: "散客",
         currency: "¥",
         // Toast / Modal
@@ -58,9 +58,9 @@ const I18n = {
         r_total: "TOTAL",
         r_auth: "AUTH",
         r_ref: "REF",
-        r_waiting: "- WAITING FOR DATA -",
+        r_waiting: "- WAITING FOR ORDER -",
         r_thanks: "THANK YOU FOR VISITING",
-        r_fold: "/// SECTION FOLDED: {n} ITEMS HIDDEN ///",
+        r_fold: "",
         guest_walkin: "WALK-IN",
         currency: "$",
         // Toast / Modal
@@ -329,15 +329,35 @@ const ui = {
         try {
             const data = protocol.parseText(text);
             const res = protocol.decrypt(data);
-            ui.outputDecrypt.innerText = "";
-            let i = 0;
-            document.getElementById('decrypt-status').innerText = "SUCCESS";
+
+            // 清空当前内容
+            ui.outputDecrypt.innerHTML = '<span class="cursor-blink"></span>';
+
+            document.getElementById('decrypt-status').innerText = "DECODING...";
             document.getElementById('decrypt-status').style.color = "#00ff9d";
+            document.getElementById('decrypt-status').classList.add('blink'); // 状态闪烁
+
+            let i = 0;
+            // 稍微加快打字速度，更有黑客感
+            const speed = 15;
+
             const type = () => {
                 if (i < res.length) {
-                    ui.outputDecrypt.innerText += res.charAt(i);
+                    // 获取当前文字内容（不含光标）
+                    let currentText = res.substring(0, i + 1);
+                    // 重新组合：文字 + 光标
+                    ui.outputDecrypt.innerHTML = currentText + '<span class="cursor-blink"></span>';
+
+                    // 核心：自动滚动到底部
+                    const displayContainer = document.querySelector('.output-display');
+                    displayContainer.scrollTop = displayContainer.scrollHeight;
+
                     i++;
-                    setTimeout(type, 20);
+                    setTimeout(type, speed);
+                } else {
+                    // 结束时状态更新
+                    document.getElementById('decrypt-status').innerText = "SUCCESS";
+                    document.getElementById('decrypt-status').classList.remove('blink');
                 }
             }
             type();
@@ -349,46 +369,80 @@ const ui = {
     },
 
     renderReceipt: (data) => {
-        const t = I18n[ui.lang];
-        const now = new Date();
-        document.getElementById('r-date').innerText = now.toLocaleDateString();
-        document.getElementById('r-order').innerText = data.orderId;
-        document.getElementById('r-member').innerText = (data.memberId === "0000-0000-0000") ? t.guest_walkin : data.memberId;
-        document.getElementById('r-auth').innerText = data.authCode;
-        document.getElementById('r-trace').innerText = data.traceId;
-
-        const list = document.getElementById('r-list');
-        list.innerHTML = '';
-        let total = 0;
-
-        ui.generateBarcode('r-barcode');
-
-        data.items.forEach(item => total += item.price);
-        document.getElementById('r-total').innerText = t.currency + total.toFixed(2);
-
-        const MAX_SHOW = 8;
-        const HEAD_COUNT = 3;
-        const TAIL_COUNT = 3;
-
-        let renderQueue = [];
-        if (data.items.length > MAX_SHOW) {
-            renderQueue = data.items.slice(0, HEAD_COUNT);
-            renderQueue.push({ _type: 'fold' });
-            renderQueue = renderQueue.concat(data.items.slice(data.items.length - TAIL_COUNT));
-        } else {
-            renderQueue = data.items;
+        // --- 安全检查：防止数据为空导致报错 ---
+        if (!data || !data.items) {
+            console.error("Render Error: Invalid data");
+            return;
         }
 
+        const t = I18n[ui.lang];
+        const now = new Date();
+
+        // --- 基础信息填充 ---
+        const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.innerText = txt; };
+        setTxt('r-date', now.toLocaleDateString());
+        setTxt('r-order', data.orderId);
+        setTxt('r-member', (data.memberId === "0000-0000-0000") ? t.guest_walkin : data.memberId);
+        setTxt('r-auth', data.authCode);
+        setTxt('r-trace', data.traceId);
+
+        const list = document.getElementById('r-list');
+        if (!list) return; // 防止DOM不存在报错
+        list.innerHTML = '';
+
+        // 生成条形码（如果函数存在）
+        if (typeof ui.generateBarcode === 'function') {
+            ui.generateBarcode('r-barcode');
+        }
+
+        // --- 1. 定义折叠阈值 (您要求的配置) ---
+        const MAX_SHOW = 5;
+        const HEAD_COUNT = 2;
+        const TAIL_COUNT = 2;
+
+        let renderQueue = [];
+
+        // --- 2. 构建渲染队列 ---
+        if (data.items.length > MAX_SHOW) {
+            // 头部
+            renderQueue = data.items.slice(0, HEAD_COUNT);
+            // 中间插入折叠标记 (剪刀)
+            renderQueue.push({ _type: 'fold' });
+            // 尾部
+            renderQueue = renderQueue.concat(data.items.slice(data.items.length - TAIL_COUNT));
+        } else {
+            renderQueue = [...data.items]; // 浅拷贝，防止修改原数据
+        }
+
+        // --- 3. 动态计算总价 (核心逻辑：只算露出来的) ---
+        let visibleTotal = 0;
+        renderQueue.forEach(item => {
+            // 只有当 item 不是折叠标记时，才累加价格
+            if (item._type !== 'fold' && typeof item.price === 'number') {
+                visibleTotal += item.price;
+            }
+        });
+
+        // 更新总价显示
+        const totalEl = document.getElementById('r-total');
+        if (totalEl) totalEl.innerText = t.currency + visibleTotal.toFixed(2);
+
+        // --- 4. 渲染列表DOM ---
         renderQueue.forEach((item, i) => {
             if (item._type === 'fold') {
-                const fold = document.createElement('div');
-                fold.className = 'receipt-fold';
-                fold.innerHTML = `<span class="fold-icon">✂</span>`;
-                list.appendChild(fold);
+                // === 渲染剪刀折叠行 ===
+                const foldDiv = document.createElement('div');
+                foldDiv.className = 'receipt-fold';
+                // 使用剪刀符号
+                foldDiv.innerHTML = `<span class="fold-icon" style="font-size: 1.2rem;">&#x2702;</span>`;
+                list.appendChild(foldDiv);
             } else {
+                // === 渲染普通商品行 ===
                 const div = document.createElement('div');
                 div.className = 'r-item';
-                div.style.animationDelay = `${i * 0.05}s`;
+                // 打印动画延迟
+                div.style.animationDelay = `${i * 0.15}s`;
+
                 div.innerHTML = `
                     <div class="r-main">
                         <span>${item.name}</span>
@@ -400,8 +454,10 @@ const ui = {
             }
         });
 
+        // 自动滚动到底部
         setTimeout(() => {
-            document.getElementById('receiptPaper').scrollTop = 999;
+            const paper = document.getElementById('receiptPaper');
+            if (paper) paper.scrollTop = paper.scrollHeight;
         }, 100);
     },
 

@@ -29,7 +29,7 @@ body {
     overflow: hidden;
 }
 
-/* 滤镜 */
+/* 氛围层：CRT 扫描线与微弱闪烁 */
 .screen-fx {
     position: fixed;
     top: 0;
@@ -38,9 +38,30 @@ body {
     height: 100%;
     pointer-events: none;
     z-index: 9999;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.05) 50%);
-    background-size: 100% 3px;
-    opacity: 0.05;
+    /* 更加明显的扫描线 */
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%,
+            rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg,
+            rgba(255, 0, 0, 0.03),
+            rgba(0, 255, 0, 0.01),
+            rgba(0, 0, 255, 0.03));
+    background-size: 100% 4px, 6px 100%;
+    animation: flicker 0.15s infinite;
+    opacity: 0.6;
+}
+
+/* 屏幕微弱闪烁动画 */
+@keyframes flicker {
+    0% {
+        opacity: 0.55;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+
+    100% {
+        opacity: 0.55;
+    }
 }
 
 .app-container {
@@ -108,7 +129,9 @@ body {
     border-radius: 8px;
     padding: 20px;
     max-width: 90%;
-    max-height: 90vh;
+    /* 移除 max-height: 90vh; */
+    height: auto;
+    /* 确保高度自适应内容 */
     display: flex;
     flex-direction: column;
     gap: 15px;
@@ -149,17 +172,23 @@ body {
 }
 
 .img-container {
+    /* 增加一个最大高度，让长图可以滚动 */
+    max-height: 70vh;
+    /* 限制图片容器高度，可根据需求调整 */
     overflow-y: auto;
     background: #050505;
     padding: 20px;
     border-radius: 4px;
     display: flex;
     justify-content: center;
+    /* 修复长图顶部被压缩的问题 */
+    align-items: flex-start;
 }
 
 .img-container img {
     max-width: 100%;
     height: auto;
+    /* 确保图片高度自适应 */
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
 }
 
@@ -311,28 +340,38 @@ body {
     box-shadow: 0 0 15px var(--accent-dim);
 }
 
+/* 面板切换动画：CRT 开启效果 */
 .panel-section {
     display: none;
     flex-direction: column;
     gap: 20px;
     flex: 1;
     height: 100%;
-    animation: fadeIn 0.3s ease;
+    opacity: 0;
+    transform-origin: center top;
 }
 
 .panel-section.active {
     display: flex;
+    animation: turnOn 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
 }
 
-@keyframes fadeIn {
-    from {
+@keyframes turnOn {
+    0% {
         opacity: 0;
-        transform: translateY(10px);
+        transform: scaleY(0) scaleX(0.8);
+        filter: blur(10px);
     }
 
-    to {
+    60% {
+        transform: scaleY(1.1) scaleX(1);
+        /* 稍微拉伸一下 */
+    }
+
+    100% {
         opacity: 1;
-        transform: translateY(0);
+        transform: scaleY(1) scaleX(1);
+        filter: blur(0);
     }
 }
 
@@ -347,10 +386,12 @@ body {
     min-height: 200px;
     transition: border-color 0.3s;
     box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
 }
 
 .terminal-window:focus-within {
-    border-color: var(--accent);
+    border-color: var(--cyber-green);
+    box-shadow: 0 0 25px var(--cyber-green-glow), inset 0 0 10px rgba(0, 255, 157, 0.1);
 }
 
 .scan-mode {
@@ -410,11 +451,48 @@ textarea::placeholder {
     transition: all 0.2s;
     border-radius: 2px;
     letter-spacing: 1px;
+    overflow: hidden;
+    /* 必须加这个 */
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
+/* 鼠标悬停时的强烈光晕 */
 .cyber-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 0 20px rgba(230, 203, 164, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 0 30px var(--accent);
+    text-shadow: 2px 0 var(--cyber-green), -2px 0 #ff00de;
+}
+
+/* 按钮文字的故障动画 */
+.cyber-btn:hover .btn-text {
+    animation: glitch-text 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
+    display: inline-block;
+}
+
+@keyframes glitch-text {
+    0% {
+        transform: translate(0);
+    }
+
+    20% {
+        transform: translate(-2px, 2px);
+    }
+
+    40% {
+        transform: translate(-2px, -2px);
+    }
+
+    60% {
+        transform: translate(2px, 2px);
+    }
+
+    80% {
+        transform: translate(2px, -2px);
+    }
+
+    100% {
+        transform: translate(0);
+    }
 }
 
 .cyber-btn:active {
@@ -460,23 +538,51 @@ textarea::placeholder {
     color: #888;
 }
 
+/* --- 解密终端文字特效优化 --- */
 .output-display {
-    flex: 1;
-    background: #000;
-    border-radius: 4px;
-    padding: 15px;
-    overflow-y: auto;
-    border: 1px solid #333;
+    /* 增加内阴影，让屏幕看起来有深度 */
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8);
+    background: #050505;
 }
 
 .cyber-text {
-    font-family: var(--font-ui);
-    font-size: 1rem;
+    font-family: 'Consolas', 'Monaco', monospace;
+    /* 确保是终端字体 */
+    font-size: 1.1rem;
+    /* 增大字号 */
+    line-height: 1.5;
     color: var(--cyber-green);
     word-break: break-all;
-    line-height: 1.6;
     white-space: pre-wrap;
-    text-shadow: 0 0 5px var(--cyber-green-glow);
+    /* 增强辉光效果，制造过曝感 */
+    text-shadow: 0 0 2px rgba(0, 255, 157, 0.8), 0 0 10px rgba(0, 255, 157, 0.4);
+    font-weight: bold;
+    min-height: 1.5em;
+    /* 确保有内容前不塌陷 */
+}
+
+/* 模拟终端的光标块 */
+.cursor-blink {
+    display: inline-block;
+    width: 10px;
+    height: 1.2em;
+    background-color: var(--cyber-green);
+    vertical-align: text-bottom;
+    margin-left: 2px;
+    animation: blink-animation 1s step-end infinite;
+    box-shadow: 0 0 10px var(--cyber-green);
+}
+
+@keyframes blink-animation {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
 }
 
 .footer-info {
@@ -509,18 +615,48 @@ textarea::placeholder {
     transform: rotateX(0deg) rotateZ(0deg) scale(1.02);
 }
 
+/* 优化小票主体样式 */
 .receipt {
     background: var(--receipt-paper);
     color: var(--receipt-ink);
     width: 320px;
-    padding: 25px;
-    font-family: var(--font-receipt);
+    padding: 50px 25px 25px 25px;
+    /* 更改：更偏向老式点阵打印机的字体，提高行高 */
+    font-family: 'Consolas', 'Monaco', 'Courier New', 'Courier', monospace;
     font-size: 13px;
+    /* 增加行高，模拟打印机间隔 */
+    line-height: 1.4;
     font-weight: 600;
     position: relative;
     max-height: 85vh;
     overflow-y: auto;
     background-image: url("data:image/svg+xml,%3Csvg width='4' height='4' viewBox='0 0 4 4' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 3h1v1H1V3zm2-2h1v1H3V1z' fill='%23000000' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
+    /* 新增：轻微色差和柔化效果 */
+    filter: brightness(0.98) contrast(1.05) blur(0.1px);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+    /* 增加内部阴影，模拟纸张厚度 */
+    /* 新增：模拟打印不均的微弱纹理 (使用 ::before 或 ::after) */
+    position: relative;
+}
+
+/* 新增：模拟噪点/打印颗粒感 */
+.receipt::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* 使用纹理叠加 */
+    background: repeating-linear-gradient(0deg,
+            rgba(0, 0, 0, 0.01) 0px,
+            rgba(0, 0, 0, 0.03) 1px,
+            transparent 2px,
+            transparent 4px);
+    pointer-events: none;
+    z-index: 1;
+    mix-blend-mode: multiply;
+    /* 混合模式让噪点看起来更自然 */
 }
 
 .receipt::-webkit-scrollbar {
@@ -550,21 +686,32 @@ textarea::placeholder {
     margin-bottom: 25px;
 }
 
+/* 修改 .r-logo 样式，实现视觉上的分散对齐 */
 .r-logo {
     font-size: 1.8rem;
     font-weight: 900;
-    letter-spacing: -1px;
+    /* 调整 letter-spacing 为正值，拉开文字间距 */
+    letter-spacing: 12px;
     margin-bottom: 8px;
     color: #000;
-    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-family: 'Consolas', 'Monaco', 'Courier New', 'Courier', monospace;
+    text-shadow: 0.5px 0.5px 0 rgba(0, 0, 0, 0.1);
+    /* 新增：强制居中显示，但配合大的 letter-spacing 产生分散感 */
+    text-align: center;
 }
 
+/* 修改 .r-sub 样式，进一步分散 */
 .r-sub {
     font-size: 0.65rem;
     text-transform: uppercase;
     color: #555;
     margin-bottom: 20px;
-    letter-spacing: 2px;
+    /* 将字母间距进一步拉大，达到分散对齐效果 */
+    letter-spacing: 6px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', 'Courier', monospace;
+    font-weight: bold;
+    /* 强制居中 */
+    text-align: center;
 }
 
 .r-meta-grid {
@@ -587,6 +734,18 @@ textarea::placeholder {
     padding-bottom: 10px;
 }
 
+@keyframes paperFeed {
+    from {
+        transform: scaleY(0);
+        opacity: 0;
+    }
+
+    to {
+        transform: scaleY(1);
+        opacity: 1;
+    }
+}
+
 .empty-state {
     text-align: center;
     color: #999;
@@ -599,38 +758,52 @@ textarea::placeholder {
     display: flex;
     flex-direction: column;
     margin-bottom: 18px;
+
+    /* 初始状态：不可见且略微向上 */
     opacity: 0;
-    animation: print 0.2s forwards;
+    transform: translateY(-10px);
+
+    /* 缩短动画时间，增加顿挫感 */
+    animation: printLine 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
-@keyframes print {
-    from {
+@keyframes printLine {
+    0% {
         opacity: 0;
-        transform: translateY(-5px);
+        transform: translateY(-10px);
+        filter: blur(2px);
+        /* 加一点动态模糊 */
     }
 
-    to {
+    100% {
         opacity: 1;
         transform: translateY(0);
+        filter: blur(0);
     }
 }
 
+/* 新增：确保商品名称/价格的对齐 */
 .r-main {
     display: flex;
     justify-content: space-between;
     font-weight: 800;
     font-size: 0.95rem;
     color: #000;
+    /* 确保其也使用等宽字体 */
+    font-family: 'Consolas', 'Monaco', 'Courier New', 'Courier', monospace;
 }
 
+/* 优化商品描述行 */
 .r-desc {
-    font-size: 0.7rem;
+    /* 恢复到默认字体大小，避免过小 */
+    font-size: 0.8rem;
     color: #666;
     margin-top: 4px;
     font-weight: 500;
-    font-size: 0.7rem;
-    transform: scale(0.95);
-    transform-origin: left top;
+    /* 移除 scale 转换，避免影响对齐 */
+    transform: none;
+    /* 强制使用等宽字体，与主行保持一致 */
+    font-family: 'Consolas', 'Monaco', 'Courier New', 'Courier', monospace;
 }
 
 .receipt-fold {
@@ -680,12 +853,15 @@ textarea::placeholder {
     align-items: flex-end;
 }
 
+/* 确保底部校验信息使用等宽字体 */
 .r-hash-block {
     text-align: left;
     font-size: 0.65rem;
     color: #555;
     margin-bottom: 25px;
     line-height: 1.5;
+    /* 新增：强制使用等宽字体 */
+    font-family: 'Consolas', 'Monaco', 'Courier New', 'Courier', monospace;
 }
 
 .barcode-container {
@@ -696,12 +872,17 @@ textarea::placeholder {
     mix-blend-mode: multiply;
 }
 
+/* 修改 .thank-you 样式 */
 .thank-you {
     font-size: 0.65rem;
     color: #999;
     margin-top: 15px;
-    letter-spacing: 1px;
-    transform: scale(0.9);
+    /* 增加字母间距 */
+    letter-spacing: 3px;
+    /* 调整 transform 为更小的缩放，或者移除 */
+    transform: scale(0.95);
+    /* 强制使用等宽字体 */
+    font-family: 'Consolas', 'Monaco', 'Courier New', 'Courier', monospace;
 }
 
 /* 悬浮按钮组 - 双按钮布局 */
@@ -801,4 +982,17 @@ textarea::placeholder {
         opacity: 1;
         bottom: 20px;
     }
+}
+
+/* 新增：底部网址样式 */
+.r-website {
+    font-family: 'Consolas', 'Monaco', 'Courier New', 'Courier', monospace;
+    font-size: 0.75rem;
+    color: #333;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    /* 增加与条形码的距离 */
+    letter-spacing: 1px;
+    text-align: center;
+    font-weight: 800;
 }
