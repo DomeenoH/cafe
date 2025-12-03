@@ -4,7 +4,7 @@ A cyberpunk-themed interactive receipt generator and terminal interface. This pr
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-[🌐 Live Demo](https://café.weibazhen.com/)
+[🌐 Live Demo](https://cafe.weibazhen.com/)
 
 ## ✨ Features
 

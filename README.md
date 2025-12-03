@@ -4,7 +4,7 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-[🌐 在线演示 (Live Demo)](https://café.weibazhen.com/) | [English Version](README_EN.md)
+[🌐 在线演示 (Live Demo)](https://cafe.weibazhen.com/) | [English Version](README_EN.md)
 
 ## ✨ 特性
 
