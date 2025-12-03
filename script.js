@@ -12,7 +12,8 @@ const I18n = {
         ph_encrypt: "// 请在此输入备注信息...",
         ph_decrypt: "// 请在此粘贴小票内容以进行解码...",
         label_decoded: "> 解码数据流:",
-        footer_ver: "安全终端 V8.3",
+        footer_ver: "安全终端 V8.2",
+        // Receipt
         r_title: "尾巴咖啡",
         r_sub: "独立烘焙 · 精品咖啡",
         r_date: "日期",
@@ -26,8 +27,9 @@ const I18n = {
         r_fold: "/// 区域折叠：已隐藏 {n} 项商品 ///",
         guest_walkin: "散客",
         currency: "¥",
-        toast_ok: "系统消息：小票文本已复制",
-        toast_img: "系统消息：影像处理完成",
+        // Toast / Modal
+        toast_ok: "系统消息：小票已复制",
+        toast_img: "系统消息：影像已生成",
         toast_empty: "错误：输入内容为空",
         toast_err: "错误：数据校验失败",
         modal_title: "影像预览",
@@ -46,7 +48,8 @@ const I18n = {
         ph_encrypt: "// Enter remarks here...",
         ph_decrypt: "// Paste receipt content here...",
         label_decoded: "> DECODED DATA STREAM:",
-        footer_ver: "SECURE TERMINAL V8.3",
+        footer_ver: "SECURE TERMINAL V8.2",
+        // Receipt
         r_title: "TAIL CAFÉ",
         r_sub: "INDEPENDENT ROASTERY",
         r_date: "DATE",
@@ -60,8 +63,9 @@ const I18n = {
         r_fold: "/// SECTION FOLDED: {n} ITEMS HIDDEN ///",
         guest_walkin: "WALK-IN",
         currency: "$",
-        toast_ok: "SYSTEM: RECEIPT TEXT COPIED",
-        toast_img: "SYSTEM: IMAGE READY",
+        // Toast / Modal
+        toast_ok: "SYSTEM: RECEIPT COPIED",
+        toast_img: "SYSTEM: IMAGE SAVED",
         toast_empty: "ERROR: INPUT EMPTY",
         toast_err: "ERROR: INVALID DATA",
         modal_title: "SNAPSHOT PREVIEW",
@@ -120,7 +124,6 @@ class ProtocolV8 {
         for (let b of rawBytes) bits += b.toString(2).padStart(8, '0');
 
         let ptr = 0;
-
         let chunkOrder = this.readBits(bits, ptr, 16);
         ptr += chunkOrder.read;
         const orderHex = parseInt(chunkOrder.val.padEnd(16, '0'), 2).toString(16).toUpperCase().padStart(4, '0');
@@ -134,7 +137,7 @@ class ProtocolV8 {
         while (ptr < bits.length - 32 || items.length < 4) {
             let chunk = this.readBits(bits, ptr, 12);
             if (chunk.read < 12) {
-                if (Math.random() > 0.7 && chunk.read === 0) {
+                if (Math.random() > 0.7) {
                     const dessert = dict.desserts[Math.floor(Math.random() * dict.desserts.length)];
                     items.push(dessert);
                 } else {
@@ -239,7 +242,7 @@ const protocol = new ProtocolV8();
 const ui = {
     lang: 'cn',
     lastData: null,
-    currentBlob: null,
+    currentBlob: null, // 存储当前生成的图片Blob
     inputEncrypt: document.getElementById('input-encrypt'),
     inputDecrypt: document.getElementById('input-decrypt'),
     outputDecrypt: document.getElementById('output-decrypt'),
@@ -257,6 +260,7 @@ const ui = {
         document.getElementById('btn-copy').addEventListener('click', ui.copy);
         document.getElementById('btn-save-img').addEventListener('click', ui.saveImage);
 
+        // Modal Events
         document.getElementById('btn-close-modal').addEventListener('click', ui.closeModal);
         document.getElementById('img-modal').addEventListener('click', (e) => {
             if (e.target === ui.modal) ui.closeModal();
@@ -369,8 +373,7 @@ const ui = {
         let renderQueue = [];
         if (data.items.length > MAX_SHOW) {
             renderQueue = data.items.slice(0, HEAD_COUNT);
-            const hiddenCount = data.items.length - HEAD_COUNT - TAIL_COUNT;
-            renderQueue.push({ _type: 'fold', count: hiddenCount });
+            renderQueue.push({ _type: 'fold' });
             renderQueue = renderQueue.concat(data.items.slice(data.items.length - TAIL_COUNT));
         } else {
             renderQueue = data.items;
@@ -380,13 +383,11 @@ const ui = {
             if (item._type === 'fold') {
                 const fold = document.createElement('div');
                 fold.className = 'receipt-fold';
-                const foldText = I18n[ui.lang].r_fold.replace('{n}', item.count);
-                fold.innerHTML = `<span class="fold-icon">✂ ${foldText}</span>`;
+                fold.innerHTML = `<span class="fold-icon">✂</span>`;
                 list.appendChild(fold);
             } else {
                 const div = document.createElement('div');
                 div.className = 'r-item';
-                // 修复 Bug 1：确保动画能跑完，并保持 opacity 1
                 div.style.animationDelay = `${i * 0.05}s`;
                 div.innerHTML = `
                     <div class="r-main">
@@ -432,43 +433,33 @@ const ui = {
         txt += `${t.r_total}${' '.repeat(tSpace)}${totalStr}\n\n`;
         txt += `${t.r_auth}: ${d.authCode}\n${t.r_ref}: ${d.traceId}\n\n${t.r_thanks}`;
 
-        // 修复 Bug 2: 确保复制按钮可用
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(txt).then(() => ui.showToast(t.toast_ok)).catch(() => {
-                document.execCommand('copy');
-                ui.showToast(t.toast_ok);
-            });
-        } else {
-            document.execCommand('copy');
-            ui.showToast(t.toast_ok);
-        }
+        navigator.clipboard.writeText(txt).then(() => ui.showToast(t.toast_ok));
     },
 
+    // 核心重写：强力静止截图
     saveImage: () => {
         const original = document.getElementById('receiptPaper');
         if (!original) return;
 
-        ui.showToast(I18n[ui.lang].toast_img);
-
+        // 1. 克隆
         const clone = original.cloneNode(true);
+        // 2. 加上强制静态 Class
         clone.classList.add('snapshot-mode');
 
-        clone.querySelectorAll('.r-item').forEach(item => {
-            item.style.animationDelay = '0s';
-        });
-
+        // 3. 挂载到 Body (不可见区域)
         document.body.appendChild(clone);
 
+        // 4. 等待 DOM 渲染 (Double RAF 确保渲染完成)
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 html2canvas(clone, {
                     scale: 2,
-                    logging: false,
                     useCORS: true,
-                    backgroundColor: '#f4f1ea',
+                    backgroundColor: '#f4f1ea', // 小票背景色
+                    logging: false,
                     windowWidth: 400
                 }).then(canvas => {
-                    document.body.removeChild(clone);
+                    document.body.removeChild(clone); // 清理
 
                     canvas.toBlob(blob => {
                         ui.currentBlob = blob;
@@ -477,8 +468,9 @@ const ui = {
                         ui.openModal();
                     }, 'image/png');
                 }).catch(err => {
+                    console.error(err);
                     document.body.removeChild(clone);
-                    ui.showToast(I18n[ui.lang].toast_err + "(Canvas Error)");
+                    ui.showToast(I18n[ui.lang].toast_err);
                 });
             });
         });
@@ -495,31 +487,25 @@ const ui = {
                 files: [file],
                 title: t.r_title,
                 text: t.r_sub
-            }).catch(() => ui.downloadBlob(ui.currentBlob, fileName));
+            }).catch(console.error);
         } else {
-            ui.downloadBlob(ui.currentBlob, fileName);
+            // Fallback download
+            const url = URL.createObjectURL(ui.currentBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            ui.showToast("已保存到相册");
         }
-    },
-
-    downloadBlob: (blob, fileName) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
     },
 
     openModal: () => {
         ui.modal.classList.add('active');
-        const t = I18n[ui.lang];
-        document.getElementById('btn-share-action').innerText = t.btn_share;
     },
     closeModal: () => {
         ui.modal.classList.remove('active');
-        ui.currentBlob = null;
     },
 
     showToast: (msg) => {

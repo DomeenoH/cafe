@@ -8,9 +8,8 @@
     --text-main: #e0e0e0;
     --receipt-paper: #f4f1ea;
     --receipt-ink: #2b2a29;
-    /* 深棕/黑灰，模拟墨迹 */
     --font-ui: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif;
-    --font-receipt: "Courier New", "Courier", "PingFang SC", "Microsoft Yahei", monospace;
+    --font-receipt: "Courier New", "Courier", "PingFang SC", "Microsoft YaHei", monospace;
     --border: 1px solid #2a2a2c;
 }
 
@@ -30,6 +29,7 @@ body {
     overflow: hidden;
 }
 
+/* 滤镜 */
 .screen-fx {
     position: fixed;
     top: 0;
@@ -49,7 +49,37 @@ body {
     height: 100%;
 }
 
-/* --- 影像 Modal 修复: 保证内容不被压扁 --- */
+/* --- 核心修复：截图模式强制样式 --- */
+/* 当克隆体带有此 Class 时，强制移除所有动画并展开 */
+.snapshot-mode {
+    position: fixed !important;
+    top: -9999px !important;
+    left: 0 !important;
+    width: 340px !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    transform: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    background: var(--receipt-paper) !important;
+    border-radius: 0 !important;
+}
+
+.snapshot-mode * {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+/* 截图时移除锯齿边缘的阴影，避免渲染黑边 */
+.snapshot-mode::after {
+    box-shadow: none !important;
+    z-index: 0 !important;
+}
+
+/* --- Modal 悬浮窗 --- */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -77,7 +107,7 @@ body {
     border: 1px solid #333;
     border-radius: 8px;
     padding: 20px;
-    max-width: 450px;
+    max-width: 90%;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
@@ -114,19 +144,22 @@ body {
     line-height: 1;
 }
 
+.modal-close:hover {
+    color: #fff;
+}
+
 .img-container {
-    flex-grow: 1;
     overflow-y: auto;
     background: #050505;
     padding: 20px;
     border-radius: 4px;
+    display: flex;
+    justify-content: center;
 }
 
 .img-container img {
     max-width: 100%;
     height: auto;
-    display: block;
-    margin: 0 auto;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
 }
 
@@ -150,7 +183,7 @@ body {
     width: 100%;
 }
 
-/* --- 左侧控制台 --- */
+/* 左侧控制台 */
 .control-panel {
     flex: 1;
     padding: 40px;
@@ -191,6 +224,41 @@ body {
     font-weight: bold;
 }
 
+.led {
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+}
+
+.lang-switch {
+    display: flex;
+    align-items: center;
+    font-size: 0.8rem;
+    color: #555;
+    gap: 8px;
+}
+
+.lang-btn {
+    background: none;
+    border: none;
+    color: #555;
+    cursor: pointer;
+    font-weight: bold;
+    padding: 4px;
+    transition: color 0.2s;
+}
+
+.lang-btn.active {
+    color: var(--accent);
+    border-bottom: 2px solid var(--accent);
+}
+
+.lang-btn:hover {
+    color: #fff;
+}
+
 .main-interface {
     flex: 1;
     display: flex;
@@ -222,6 +290,11 @@ body {
     opacity: 0.7;
 }
 
+.tab-btn:hover {
+    opacity: 1;
+    color: #aaa;
+}
+
 .tab-btn.active {
     color: var(--accent);
     opacity: 1;
@@ -251,6 +324,18 @@ body {
     display: flex;
 }
 
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .terminal-window {
     display: flex;
     flex-direction: column;
@@ -262,6 +347,10 @@ body {
     min-height: 200px;
     transition: border-color 0.3s;
     box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.terminal-window:focus-within {
+    border-color: var(--accent);
 }
 
 .scan-mode {
@@ -292,6 +381,12 @@ textarea {
     scrollbar-color: #333 #000;
 }
 
+textarea::placeholder {
+    color: #444;
+    font-family: var(--font-ui);
+    font-style: normal;
+}
+
 .terminal-footer {
     background: #080808;
     padding: 6px 15px;
@@ -320,6 +415,10 @@ textarea {
 .cyber-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 0 20px rgba(230, 203, 164, 0.3);
+}
+
+.cyber-btn:active {
+    transform: scale(0.99);
 }
 
 .cyber-btn.secondary {
@@ -353,6 +452,14 @@ textarea {
     font-weight: bold;
 }
 
+.status-tag {
+    background: #1a1a1a;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-size: 0.6rem;
+    color: #888;
+}
+
 .output-display {
     flex: 1;
     background: #000;
@@ -381,7 +488,6 @@ textarea {
     padding-top: 20px;
 }
 
-/* --- 右侧小票舞台 --- */
 .receipt-stage {
     flex: 1;
     background: #050505;
@@ -399,6 +505,10 @@ textarea {
     filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.7));
 }
 
+.receipt-stage:hover .receipt-wrapper {
+    transform: rotateX(0deg) rotateZ(0deg) scale(1.02);
+}
+
 .receipt {
     background: var(--receipt-paper);
     color: var(--receipt-ink);
@@ -410,7 +520,6 @@ textarea {
     position: relative;
     max-height: 85vh;
     overflow-y: auto;
-    /* 纸张纹理 */
     background-image: url("data:image/svg+xml,%3Csvg width='4' height='4' viewBox='0 0 4 4' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 3h1v1H1V3zm2-2h1v1H3V1z' fill='%23000000' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
 }
 
@@ -418,7 +527,12 @@ textarea {
     width: 4px;
 }
 
-.receipt-after {
+.receipt::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 2px;
+}
+
+.receipt::after {
     content: "";
     position: absolute;
     bottom: -8px;
@@ -436,6 +550,23 @@ textarea {
     margin-bottom: 25px;
 }
 
+.r-logo {
+    font-size: 1.8rem;
+    font-weight: 900;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+    color: #000;
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.r-sub {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+}
+
 .r-meta-grid {
     font-size: 0.75rem;
     font-weight: bold;
@@ -445,18 +576,30 @@ textarea {
     padding-bottom: 15px;
 }
 
+.meta-row {
+    display: flex;
+    justify-content: space-between;
+}
+
 .r-body {
     margin: 20px 0;
     min-height: 100px;
     padding-bottom: 10px;
 }
 
-/* 修复 Bug 1: 确保条目可见，移除 opacity: 0 */
+.empty-state {
+    text-align: center;
+    color: #999;
+    font-style: italic;
+    padding-top: 40px;
+    font-size: 0.8rem;
+}
+
 .r-item {
     display: flex;
     flex-direction: column;
     margin-bottom: 18px;
-    /* opacity: 0; 移除，防止被隐藏 */
+    opacity: 0;
     animation: print 0.2s forwards;
 }
 
@@ -477,10 +620,11 @@ textarea {
     justify-content: space-between;
     font-weight: 800;
     font-size: 0.95rem;
-    color: var(--receipt-ink);
+    color: #000;
 }
 
 .r-desc {
+    font-size: 0.7rem;
     color: #666;
     margin-top: 4px;
     font-weight: 500;
@@ -499,6 +643,26 @@ textarea {
     justify-content: center;
 }
 
+.receipt-fold::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 100%;
+    height: 1px;
+    background-image: linear-gradient(to right, #bbb 50%, transparent 50%);
+    background-size: 8px 1px;
+}
+
+.fold-icon {
+    background: var(--receipt-paper);
+    padding: 0 10px;
+    color: #888;
+    font-size: 14px;
+    position: relative;
+    z-index: 1;
+}
+
 .r-footer {
     margin-top: 10px;
     padding-top: 20px;
@@ -512,68 +676,78 @@ textarea {
     font-size: 1.6rem;
     font-weight: 900;
     margin-bottom: 25px;
-    color: var(--receipt-ink);
+    color: #000;
     align-items: flex-end;
 }
 
-/* 悬浮按钮组 */
-.fab-group {
+.r-hash-block {
+    text-align: left;
+    font-size: 0.65rem;
+    color: #555;
+    margin-bottom: 25px;
+    line-height: 1.5;
+}
+
+.barcode-container {
+    height: 55px;
+    width: 95%;
+    margin: 0 auto;
+    opacity: 0.9;
+    mix-blend-mode: multiply;
+}
+
+.thank-you {
+    font-size: 0.65rem;
+    color: #999;
+    margin-top: 15px;
+    letter-spacing: 1px;
+    transform: scale(0.9);
+}
+
+/* 悬浮按钮组 - 双按钮布局 */
+.fab-copy {
     position: absolute;
     bottom: 30px;
     left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    display: flex;
-    gap: 12px;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    opacity: 0;
-    pointer-events: none;
-    z-index: 15;
-}
-
-.receipt-stage:hover .fab-group {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-    pointer-events: auto;
-}
-
-.fab-copy {
+    transform: translateX(-110%) translateY(80px);
     background: #111;
     color: var(--accent);
-    border: 1px solid #444;
-    padding: 12px 20px;
+    border: 1px solid var(--accent);
+    padding: 12px 24px;
     border-radius: 50px;
     font-weight: bold;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     cursor: pointer;
     display: flex;
     gap: 8px;
     align-items: center;
-    transition: all 0.2s;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-    text-transform: uppercase;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .fab-save {
-    background: transparent;
-    color: var(--accent);
-    border-color: #555;
+    transform: translateX(10%) translateY(80px);
+}
+
+/* 激活态 */
+.receipt-stage:hover .fab-copy {
+    opacity: 1;
+}
+
+.receipt-stage:hover .fab-copy#btn-copy {
+    transform: translateX(-110%) translateY(0);
+}
+
+.receipt-stage:hover .fab-copy#btn-save-img {
+    transform: translateX(10%) translateY(0);
 }
 
 .fab-copy:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 0 20px rgba(230, 203, 164, 0.3);
-}
-
-.fab-copy:hover {
-    background: #fff;
-    color: #000;
-}
-
-.fab-save:hover {
     background: var(--accent);
     color: #000;
+    box-shadow: 0 0 20px var(--accent-dim);
 }
-
 
 .toast {
     position: fixed;
@@ -593,36 +767,6 @@ textarea {
 
 .toast.show {
     top: 30px;
-}
-
-/* 截图模式专用样式 */
-.snapshot-mode {
-    position: fixed !important;
-    top: -9999px !important;
-    left: 0 !important;
-    width: 340px !important;
-    height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-    transform: none !important;
-    box-shadow: none !important;
-    margin: 0 !important;
-    background: var(--receipt-paper) !important;
-    z-index: -1 !important;
-    animation: none !important;
-    transition: none !important;
-}
-
-.snapshot-mode * {
-    animation: none !important;
-    transition: none !important;
-    opacity: 1 !important;
-    transform: none !important;
-}
-
-.snapshot-mode::after {
-    box-shadow: none !important;
-    z-index: 0 !important;
 }
 
 @media (max-width: 900px) {
@@ -646,10 +790,15 @@ textarea {
         overflow: visible;
     }
 
-    .fab-group {
-        bottom: 20px;
+    .fab-copy#btn-copy {
+        transform: translateX(-110%) translateY(0);
         opacity: 1;
-        transform: translateX(-50%) translateY(0);
-        pointer-events: auto;
+        bottom: 20px;
+    }
+
+    .fab-copy#btn-save-img {
+        transform: translateX(10%) translateY(0);
+        opacity: 1;
+        bottom: 20px;
     }
 }
